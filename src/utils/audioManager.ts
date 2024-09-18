@@ -1,7 +1,5 @@
-import { readBinaryFile } from "@tauri-apps/api/fs";
-import { resolveResource } from "@tauri-apps/api/path";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
-import { writable, type Writable } from "svelte/store";
+import { metaFile } from "./metaManager";
 export enum PlayerItemType {
     Playlist,
     Track,
@@ -14,6 +12,18 @@ export enum PlayerItemType {
 type PlayingFrom = {
     type: PlayerItemType,
     id: string
+}
+
+class Queue extends Array<string> {
+    playingIndex: number;
+    constructor() {
+        super()
+        this.playingIndex = 0;
+    }
+
+    playing() {
+        return this[this.playingIndex];
+    }
 }
 
 class Player extends EventTarget {
@@ -43,20 +53,19 @@ class Player extends EventTarget {
             setQueueIndex(player.queueIndex + 1);
             player.playQueue();
         })
-        this.currentAudio.addEventListener("play", () => this.dispatchEvent(new CustomEvent(this.playingChangedEvent, {detail: this.getFullNowPlaying()})))
-        this.currentAudio.addEventListener("pause", () => this.dispatchEvent(new CustomEvent(this.playingChangedEvent, {detail: this.getFullNowPlaying()})))
+        this.currentAudio.addEventListener("play", () => this.dispatchEvent(new CustomEvent(this.playingChangedEvent, {detail: this.getNowPlaying()})))
+        this.currentAudio.addEventListener("pause", () => this.dispatchEvent(new CustomEvent(this.playingChangedEvent, {detail: this.getNowPlaying()})))
         this.currentAudio.addEventListener("timeupdate", () => this.dispatchEvent(new CustomEvent(this.seekChangedEvent, {detail: {time: this.currentAudio.currentTime, duration: this.currentAudio.duration}})));
     }
 
-    getFullNowPlaying() {
-        return metaJson?.tracks[player.getQueueItem(player.queueIndex)];
+    getNowPlaying() {
+        return metaFile.tracks[player.getQueueItem(player.queueIndex)];
     }
 
     getQueue() {
         return [...this.queue] // ensure no pass by refernce so that event is alwasy called and there are no workarounds to ignore events
     }
     
-
     getQueueLength() {
         return this.queue.length;
     }
@@ -97,19 +106,18 @@ class Player extends EventTarget {
         this.dispatchEvent(new CustomEvent(this.queueUpdatedEvent, {detail: this.queue}));
     }
 
-
     unshuffleQueue() {
         this.shuffle = false;
         switch (this.playingFrom.type) {
             case PlayerItemType.Album:
                 var x = this.getQueueItem(player.queueIndex)
                 player.queueIndex = player.queue.indexOf(x);
-                this.setQueue(metaJson?.albums[player.playingFrom.id].tracks?.sort((a, b) => a.trackNum - b.trackNum).map((v) => {
+                this.setQueue(metaFile.albums[player.playingFrom.id].tracks?.sort((a, b) => a.trackNum - b.trackNum).map((v) => {
                     return v.id
                 }) || [""]);
                 break;
             case PlayerItemType.All:
-                this.setQueue(Object.values(metaJson?.tracks || {}).map((v) => v.id));
+                this.setQueue(Object.values(metaFile.tracks || {}).map((v) => v.id));
                 break;
             default:
                 break;
@@ -121,7 +129,7 @@ class Player extends EventTarget {
     }
 
     directPlay(id: string) {
-        const bin = convertFileSrc(metaJson?.tracks[id].path || "");
+        const bin = convertFileSrc(metaFile.tracks[id].path || "");
         this.currentAudio.currentTime = 0;
         this.currentAudio.src = bin;
         this.currentAudio.play();
@@ -143,7 +151,7 @@ class Player extends EventTarget {
 
     playTrackFromAlbum(album: string, trackIndex: number) {
         this.queueIndex = trackIndex;
-        let sortedQ = metaJson?.albums[album].tracks?.sort((a, b) => a.trackNum - b.trackNum).map((v) => v.id) || [""];
+        let sortedQ = metaFile.albums[album].tracks?.sort((a, b) => a.trackNum - b.trackNum).map((v) => v.id) || [""];
         if(this.shuffle) {
             let unShuffled = [...sortedQ];
             this.fyShuffle(sortedQ)
@@ -157,12 +165,12 @@ class Player extends EventTarget {
 
     playTrackFromArtist(albumId: string, trackIndex: number, artist: string) {
         let allSongs = [] as string[]
-        metaJson?.artists[artist].albumIds.forEach((v) => {
-            let x = metaJson?.albums[v].trackIds || [];
+        metaFile.artists[artist].albumIds.forEach((v) => {
+            let x = metaFile.albums[v].trackIds || [];
             allSongs = [...allSongs, ...x]
         });
         this.fyShuffle(allSongs);
-        allSongs[0] = (metaJson?.albums[albumId].tracks?.sort((a, b) => a.trackNum - b.trackNum).map((v) => v.id) || [])[trackIndex];
+        allSongs[0] = (metaFile.albums[albumId].tracks?.sort((a, b) => a.trackNum - b.trackNum).map((v) => v.id) || [])[trackIndex];
         this.shuffle = true;
         this.setQueue(allSongs);
         this.playQueue();
@@ -185,9 +193,6 @@ if(!current) current = makeCurrentAudio();
 export var player: Player = new Player(current);
 
 
-let metaJson: MetaFile | null = null;
-export function init(meta: MetaFile) { metaJson = meta }
-
 
 
 
@@ -202,9 +207,9 @@ current.style.display = "none";
 function updateMediaSession(id: string) {
     if (navigator.mediaSession) {
         navigator.mediaSession.metadata = new MediaMetadata({
-            title: metaJson?.tracks[id].title || "",
-            artist: metaJson?.tracks[id].artistName || "",
-            album: metaJson?.tracks[id].albumName || ""
+            title: metaFile.tracks[id].title || "",
+            artist: metaFile.tracks[id].artistName || "",
+            album: metaFile.tracks[id].albumName || ""
         })
         navigator.mediaSession.setActionHandler("play", () => {
             current.play()
@@ -279,7 +284,7 @@ export function toggle() {
 
 
 export function playAll() {
-    player.setQueue(Object.values(metaJson?.tracks || {}).map((v) => v.id));
+    player.setQueue(Object.values(metaFile.tracks || {}).map((v) => v.id));
     player.playingFrom = {
         id: "",
         type: PlayerItemType.All

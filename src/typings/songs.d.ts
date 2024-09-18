@@ -24,6 +24,17 @@ type Track = PlayerItem & {
     albumName?: string
     trackNum: number
 }
+enum UsedTags {
+    Album = "Album",
+    TrackTitle = "TrackTitle",
+    Path = "_PATH",
+    TrackNumber = "TrackNumber",
+    Artist = "Artist"
+}
+
+type RustReturn = {
+    [key: string]: {[key in UsedTags]: string}
+}
 
 type Artist = PlayerItem & {
     name: string,
@@ -42,9 +53,6 @@ type Album = PlayerItem & {
     artistId: string
 }
 
-type MetaFile = {
-    playlists: string[],
-    tracks: {[key: string]: Track},
-    albums: {[key: string]: Album},
-    artists: {[key: string]: Artist},
+type PrimitiveMetaFile = {
+    tracks: {[key: string]: Track}, artists: {[key: string]:Artist}, albums: {[key: string]: Album}, playlists: string[]
 }

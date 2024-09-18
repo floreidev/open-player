@@ -13,21 +13,17 @@
 <script lang="ts">
     import { getContext } from "svelte";
 
-    import { player } from "./audioManager";
+    import { player } from "../utils/audioManager";
     import type { Writable } from "svelte/store";
+    import { metaFile } from "../utils/metaManager";
     $: queueItems = [] as Array<Track | undefined>;
-    let metaDat: MetaFile | null = null;
-    let metaFile: Writable<MetaFile> = getContext("fileMeta");
-    metaFile.subscribe((v) => {
-        metaDat = v;
-    });
 
     // new code
     $: player.addEventListener("playingChanged", updateQ)
     $: player.addEventListener("queueChanged", updateQ);
     const updateQ = () => {
         let uQueueItems = player.getQueue();
-        queueItems = uQueueItems.map((v) => metaDat?.tracks[v])
+        queueItems = uQueueItems.map((v) => metaFile.tracks[v])
     }
 </script>
 

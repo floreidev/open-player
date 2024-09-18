@@ -1,6 +1,6 @@
 <script lang="ts">
     import AlbumComponent from "./AlbumComponent.svelte";
-    import { player } from "./audioManager";
+    import { player } from "../utils/audioManager";
 
 export let selected: Artist;
 </script>
