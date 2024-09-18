@@ -1,10 +1,9 @@
 <script lang="ts">
-    import { resolveResource } from "@tauri-apps/api/path";
-    import * as audioManager from "./audioManager"
     export let items: Track[];
     export let clickCallback: (i: number) => void;
+    export let doOverflow: boolean;
 </script>
-<ol>
+<ol style="{doOverflow ? "overflow-y: scroll;" : ""}">
     {#each items as item, i}
     <li><button class="track" on:click={() => clickCallback(i)}><p class="l">{item.trackNum}. {item.title}</p> <p class="c">{item.artistName}</p> <p class="c">{item.albumName}</p> <p class="r">{item.length}</p></button></li>     
 {/each}
@@ -19,7 +18,6 @@
     margin: 0px 64px 64px 64px;
     list-style: none;
     position: relative;
-    max-height: 100%;
     flex-grow: 0; /* Prevent the list from growing more than its content */
 }
 

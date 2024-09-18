@@ -9,18 +9,18 @@ A modern, open-source audio player built in tauri
 
 
 ## Planned Features
-| Feature | Priority | Term | Complete |
-|---|---|---|---|
-|Queue Skipping| High| Short-Term | ❌ |
-|Volume Control| High| Short | ❌ |
-|Playlists| High| Short | ❌ |
-|Favourites| High| Short | ❌ |
-|Better Artist Playing| High| Short | ❌ |
-|Sidebar Collapsing| High| Short | ❌ |
-|Last.fm Integration| Low | Long-Term | ❌ |
-|Code Refactoring| Low | Short | ❌ |
-|YTDLP Integration| High| Long-term | ❌ |
-|YTDLP Streaming| Low| Long-term | ❌ |
+| Feature               | Priority | Term       | Complete |
+| --------------------- | -------- | ---------- | -------- |
+| Queue Skipping        | High     | Short-Term | ❌        |
+| Volume Control        | High     | Short-Term | ❌        |
+| Playlists             | High     | Short-Term | ❌        |
+| Favourites            | High     | Short-Term | ❌        |
+| Better Artist Playing | High     | Short-Term | ❌        |
+| Sidebar Collapsing    | High     | Short-Term | ❌        |
+| Code Refactoring      | Low      | Short-Term | ❌        |
+| YTDLP Integration     | High     | Long-Term  | ❌        |
+| Last.fm Integration   | Low      | Long-Term  | ❌        |
+| YTDLP Streaming       | Low      | Long-Term  | ❌        |
 
 
 ## Performance

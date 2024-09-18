@@ -25,6 +25,7 @@
         opDir: string,
         playlistDir: string,
         mDir: string,
+        acDir: string
     ) {
         var hasMD = await exists(mDir);
         if (!hasMD) await createDir(mDir);
@@ -34,6 +35,11 @@
 
         var hasPD = await exists(playlistDir);
         if (!hasPD) await createDir(playlistDir);
+
+
+
+        var hasACP = await exists(acDir);
+        if(!hasACP) await createDir(acDir);
 
         var mta = await join(playlistDir, "__META__.json");
         var hasMeta = await exists(mta);
@@ -47,6 +53,7 @@
                     playlists: [],
                 }),
             );
+        return hasMeta;
     }
 
     import { register } from "@tauri-apps/api/globalShortcut";
@@ -59,7 +66,19 @@
         audioManager.previous();
     });
 
-    async function addTaggedMusicToMeta(mDir: string) {
+    async function addTaggedMusicToMeta(mDir: string) { 
+        /* TODO: Offload looping, path concatenation, reading files to rust for optimization purposes. 
+            if swapping just album covers makes it around 220x faster then we should offload as much of the
+            I/O and non-gui tasks to rust as possible
+
+            For now, ill keep the majority of the API on the svelte side, sunk-cost fallacy and such,
+            however the metadata creation, specifically the looping, ID generation, and file creation, can
+            be offloaded onto rust as thats the biggest performance issue in the code right now
+
+            in general, the app performance incredibly well, even while spamming the shuffle button and playing music
+            i managed to get ~ 100x the resource efficieny of spotiy, but this app should be able to run on a 
+            fucking potato if needs be, LET THE PEOPLE HAVE MUSIC!
+        */
         let files = await readDir(mDir, { recursive: true });
         var albums: { [key: string]: Album } = {};
         var artists: { [key: string]: Artist } = {};
@@ -70,12 +89,18 @@
             "Playlists",
             "__META__.json",
         );
+        let acp = await join(
+            mDir,
+            "OfflinePlayer",
+            "AlbumCovers",
+        )
         var metaJson: MetaFile = JSON.parse(await readTextFile(fp));
         for (var f of files) {
             if (f.name?.match(/(\.mp3|\.wav|\.flac|\.mkv|\.m4a)$/)) {
                 let v: any = await invoke("get_meta", {
                     path: f.path,
                     ext: f.name.split(".")[f.name.split(".").length - 1],
+                    acPath: acp
                 });
                 let rtist = v["Some(Artist)"];
                 let { album, artist, title, path, trackNum } = {
@@ -205,8 +230,6 @@
         return metaJson;
     }
 
-    // When using the Tauri API npm package:
-
     function generateId() {
         return (
             Math.random().toString(36).substring(2) +
@@ -226,10 +249,12 @@
         var mDir = await join(ad, "Music");
         var opDir = await join(mDir, "OfflinePlayer");
         var playlistDir = await join(opDir, "Playlists");
-        var doFullUpdate = false;
-        await createDefaultFolders(opDir, playlistDir, mDir);
+        var acDir = await join(opDir, "AlbumCovers");
+        var doFullUpdate = !await createDefaultFolders(opDir, playlistDir, mDir, acDir);;
+        
         var metaJson: MetaFile;
         if (doFullUpdate) {
+            alert("Starting full meta update! This could take a while as we're scanning your whole music library...")
             metaJson = await addTaggedMusicToMeta(mDir);
             if (!metaJson.playlists) metaJson.playlists = [];
         } else {
@@ -307,7 +332,11 @@
                 break;
         }
     };
-
+    document.addEventListener("keyup", (ev) => {
+        if(ev.key == " " && document.activeElement?.tagName != "BUTTON") audioManager.toggle();
+        if(ev.key == "ArrowRight" && ev.ctrlKey) audioManager.next();
+        if(ev.key == "ArrowLeft" && ev.ctrlKey) audioManager.previous();
+    })
     $: selected = {};
 </script>
 

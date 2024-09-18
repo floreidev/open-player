@@ -1,16 +1,18 @@
 <script lang="ts">
-    import * as audioManager from "./audioManager";
+    import {player} from "./audioManager";
     import TrackList from "./TrackList.svelte";
     export let doOverflow: boolean = true;
     export let selected: Album;
+    export let playFunction: (a: any, b: any, c?: any) => void = (a, b, c) => player.playTrackFromAlbum(a,b);
+    export let playData: string = "";
 </script>
-<div class="album-container" style={doOverflow ? "overflow-y: scroll; max-height: 100%;" : "overflow-y: hidden;"}>
+<div class="album-container" style={doOverflow ? "overflow-y: scroll; height: calc(100vh - 96px);" : "overflow-y: hidden;"}>
     
 <div class="title-area" style="{doOverflow ? "background: linear-gradient(to bottom, var(--light), var(--bg));" : "background: var(--bg);"}">
     <h1>{selected.name}</h1>
 <h2>{selected.artistName}</h2>
 </div>
-<TrackList clickCallback={(i) => audioManager.playTrackFromAlbum(selected.id, i)} items={selected.tracks || []}></TrackList>
+<TrackList doOverflow={doOverflow} clickCallback={(i) => playFunction(selected.id, i, playData)} items={selected.tracks || []}></TrackList>
 
 </div>
 <style>
@@ -56,6 +58,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
+        overflow-y: scroll;
 }
 
 

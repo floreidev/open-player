@@ -12,27 +12,36 @@
         PauseFill
     } from "svelte-bootstrap-icons";
     import * as audioManager from "./audioManager"
-    import { toggleQueue } from "./Queue.svelte";
+    import { isQueueOpened, toggleQueue } from "./Queue.svelte";
 
     $: nowPlaying = {} as Track;
     $: playing = audioManager.player.isPlaying();
 
     $: audioManager.player.addEventListener("playingChanged", () => {
-        var np = audioManager.getFullNowPlaying()
+        var np = audioManager.player.getFullNowPlaying()
         if(np) nowPlaying = np
         playing = audioManager.player.isPlaying();
+        shuffled = audioManager.player.shuffle
     })
 
-
-    document.addEventListener("keyup", (ev) => {
-        if(ev.key == " " && document.activeElement?.tagName != "BUTTON") audioManager.toggle();
-        if(ev.key == "ArrowRight" && ev.ctrlKey) audioManager.next();
-        if(ev.key == "ArrowLeft" && ev.ctrlKey) audioManager.previous();
-    })
     $: shuffled = audioManager.player.shuffle;
     $: loop = audioManager.player.loop;
     $: qOpen = false;
+    $: seekTime = 0;
+    $: seekDuration = 1;
+    $: audioManager.player.addEventListener("seekChanged", (e) => {
+        let event = e as CustomEvent;
+        if(event.detail.duration && event.detail.time) [seekTime, seekDuration] = [event.detail.time, event.detail.duration]
+
+    })
+
+    const getAsTimeString = (t: number) => {
+        var d = new Date(t);
+        return d.getMinutes() + ":" + d.getSeconds().toString().padStart(2, '0');
+    }
+
 </script>
+
 
 <div class="ba seek-area">
     <div class="ss track-info">
@@ -56,7 +65,7 @@
     </div>
     <div class="ss playbar">
         <div class="controls">
-            <button class="shuffle" on:click={() => {audioManager.toggleShuffle(); shuffled = audioManager.player.shuffle}}>
+            <button class="shuffle" on:click={() => {audioManager.toggleShuffle()}}>
                 <Shuffle width="20" height="20" color="{shuffled ? "lime" : "white"}" />
             </button>
             <button class="prev" on:click={() => audioManager.previous()}>
@@ -77,13 +86,18 @@
                 <Repeat width="20" height="20" color="{loop ? "lime" : "white"}" />
             </button>
         </div>
-        <div class="seek"></div>
+        <div class="seek-container">
+            <p>{getAsTimeString(seekTime * 1000)}</p>
+            <div class="seek" style="--data-percent: {seekTime / seekDuration * 100}%;"></div>
+            <p>{getAsTimeString(seekDuration * 1000)}</p>
+
+        </div>
     </div>
     <div class="ss misc-controls">
         <button class="mc-btn">
             <VolumeUpFill width="24" height="24" />
         </button>
-        <button class="mc-btn" on:click={() => {toggleQueue(); qOpen = !qOpen;}}>
+        <button class="mc-btn" on:click={() => {toggleQueue(); qOpen=isQueueOpened}}>
             <Bookshelf width="24" height="24" color="{qOpen ? "lime" : "white"}" />
         </button>
     </div>
@@ -91,6 +105,10 @@
 
 <style>
 
+    .seek-container p {
+        font-size: 14px;
+        margin: 8px;
+    }
 
 
     .mc-btn {
@@ -139,8 +157,28 @@
         border-radius: 1.5px;
         width: 60%;
         background: var(--highlight);
+        position: relative;
     }
 
+    .seek-container {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+
+    .seek::before {
+        content: '';
+        position: absolute;
+        border-radius: 1.5px;
+        width: var(--data-percent);
+        height: 100%;
+        background: var(--contrast);
+        left: 0;
+        top: 0;
+        bottom: 0;
+    }
 
 
     .playbar {

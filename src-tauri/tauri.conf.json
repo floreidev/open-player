@@ -27,6 +27,9 @@
         "asset": true,
         "assetScope": ["**"]
       },
+      "dialog": {
+        "all": true
+      },
       "window": {
         "close": true,
         "hide": true,

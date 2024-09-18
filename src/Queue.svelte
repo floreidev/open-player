@@ -1,10 +1,14 @@
 <script lang="ts" context="module">
     let q: HTMLElement;
+    export let isQueueOpened: boolean;
     export function toggleQueue() {
-        if (q.classList.contains("q-active")) q.classList.remove("q-active");
+        if (isQueueOpened) q.classList.remove("q-active");
         else q.classList.add("q-active");
+        isQueueOpened = !isQueueOpened;
     }
+
 </script>
+
 
 <script lang="ts">
     import { getContext } from "svelte";
@@ -20,9 +24,9 @@
 
     // new code
     $: player.addEventListener("playingChanged", updateQ)
-    $: player.addEventListener("queueUpdated", updateQ);
+    $: player.addEventListener("queueChanged", updateQ);
     const updateQ = () => {
-        let uQueueItems = player.getQueue().slice(player.queueIndex);
+        let uQueueItems = player.getQueue();
         queueItems = uQueueItems.map((v) => metaDat?.tracks[v])
     }
 </script>
@@ -30,23 +34,24 @@
 <div bind:this={q} class="queue">
     <div class="q-container">
         <h1>Queue</h1>
-        {#each queueItems as qItem}
-            {#if qItem}
-                <div class="q-item">
-                <p>{qItem.title}</p>
-                <p class="artist">{qItem.artistName}</p>
-                </div>
-            {/if}
-        {/each}
+{#each queueItems as qItem, i}
+    {#if qItem && (i >= player.queueIndex)}
+        <button on:click={() => player.skipTo(i)} class="q-item">
+            <p>{qItem.title}</p>
+            <p class="artist">{qItem.artistName}</p>
+        </button>
+    {/if}
+{/each}
     </div>
 </div>
 
 <style>
     h1 {
-        margin-left: 24px;
-        margin-bottom: 16px;
+        padding: 16px 16px 16px 24px;
+        background: var(--bg-tint);
     }
-p {
+
+p, button {
         text-overflow: ellipsis;
         flex-wrap: nowrap;
         white-space: nowrap;
@@ -101,9 +106,6 @@ p {
         overflow-y: scroll;
     }
 
-    .q-container:first-child {
-        margin-top: 16px;
-    }
 
 
     .q-item {
@@ -119,6 +121,12 @@ p {
         padding-left: 8px;
         cursor: pointer;
         user-select: none;
+        outline: none;
+        border: none;
+        color: white;
+        width: calc(100% - 32px);
+        font-size: 14px;
+        font-family: 'Figtree';
     }
     .q-item:hover, .q-item:active, .q-item:focus {
         background: var(--bg);

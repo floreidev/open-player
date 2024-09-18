@@ -1,5 +1,6 @@
 <script lang="ts">
     import AlbumComponent from "./AlbumComponent.svelte";
+    import { player } from "./audioManager";
 
 export let selected: Artist;
 </script>
@@ -9,8 +10,7 @@ export let selected: Artist;
     </div>
     <div class="albums">
         {#each selected.albums || [] as album}
-        <AlbumComponent doOverflow={false} selected={album}></AlbumComponent>
-    
+        <AlbumComponent playFunction={(a, b, c) => player.playTrackFromArtist(a, b, c)} playData={selected.id} doOverflow={false} selected={album}></AlbumComponent>
     {/each}
     </div>
     
