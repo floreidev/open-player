@@ -9,20 +9,22 @@
         Repeat,
         VolumeUpFill,
         Bookshelf,
-        PauseFill
+        PauseFill,
     } from "svelte-bootstrap-icons";
-    import * as audioManager from "./audioManager"
+    import * as audioManager from "../utils/audioManager";
+    import { homeDir, join } from "@tauri-apps/api/path";
+    import { convertFileSrc } from "@tauri-apps/api/tauri";
     import { isQueueOpened, toggleQueue } from "./Queue.svelte";
 
     $: nowPlaying = {} as Track;
     $: playing = audioManager.player.isPlaying();
-
     $: audioManager.player.addEventListener("playingChanged", () => {
-        var np = audioManager.player.getFullNowPlaying()
-        if(np) nowPlaying = np
+        var np = audioManager.player.getNowPlaying();
+        if (np) nowPlaying = np;
+
         playing = audioManager.player.isPlaying();
-        shuffled = audioManager.player.shuffle
-    })
+        shuffled = audioManager.player.shuffle;
+    });
 
     $: shuffled = audioManager.player.shuffle;
     $: loop = audioManager.player.loop;
@@ -31,25 +33,45 @@
     $: seekDuration = 1;
     $: audioManager.player.addEventListener("seekChanged", (e) => {
         let event = e as CustomEvent;
-        if(event.detail.duration && event.detail.time) [seekTime, seekDuration] = [event.detail.time, event.detail.duration]
-
-    })
+        if (event.detail.duration && event.detail.time)
+            [seekTime, seekDuration] = [
+                event.detail.time,
+                event.detail.duration,
+            ];
+    });
+    async function getAlbum() {
+        console.log("getting album");
+        let acp = await join(
+            await homeDir(),
+            "Music",
+            "OfflinePlayer",
+            "AlbumCovers",
+            nowPlaying.albumName + ".png",
+        );
+        return convertFileSrc(acp);
+    }
 
     const getAsTimeString = (t: number) => {
         var d = new Date(t);
-        return d.getMinutes() + ":" + d.getSeconds().toString().padStart(2, '0');
-    }
-
+        return (
+            d.getMinutes() + ":" + d.getSeconds().toString().padStart(2, "0")
+        );
+    };
 </script>
-
 
 <div class="ba seek-area">
     <div class="ss track-info">
         <div class="track-left">
-            <img
-                src="https://community.mp3tag.de/uploads/default/original/2X/a/acf3edeb055e7b77114f9e393d1edeeda37e50c9.png"
-                alt=""
-            />
+            {#key nowPlaying}
+            {#await getAlbum()}
+                <img
+                    src="https://community.mp3tag.de/uploads/default/original/2X/a/acf3edeb055e7b77114f9e393d1edeeda37e50c9.png"
+                    alt=""
+                />
+            {:then album}
+                <img src={album} alt="" />
+            {/await}
+            {/key}
         </div>
         <div class="track-right">
             <div class="title-segment">
@@ -59,57 +81,87 @@
                     <ThreeDots />
                 </div>
                 <p class="artist-txt">{nowPlaying.artistName || "hi :)"}</p>
-                <p class="sub-txt">{nowPlaying.albumName || "free palestine"}</p>
+                <p class="sub-txt">
+                    {nowPlaying.albumName || "free palestine"}
+                </p>
             </div>
         </div>
     </div>
     <div class="ss playbar">
         <div class="controls">
-            <button class="shuffle" on:click={() => {audioManager.toggleShuffle()}}>
-                <Shuffle width="20" height="20" color="{shuffled ? "lime" : "white"}" />
+            <button
+                class="shuffle"
+                on:click={() => {
+                    audioManager.toggleShuffle();
+                }}
+            >
+                <Shuffle
+                    width="20"
+                    height="20"
+                    color={shuffled ? "lime" : "white"}
+                />
             </button>
             <button class="prev" on:click={() => audioManager.previous()}>
                 <SkipStartFill width="20" height="20" color="white" />
             </button>
             <button class="play" on:click={() => audioManager.toggle()}>
                 {#if playing}
-                <PauseFill width="32" height="32" color="white" />
+                    <PauseFill width="32" height="32" color="white" />
                 {:else}
-                <PlayFill width="32" height="32" color="white" />
+                    <PlayFill width="32" height="32" color="white" />
                 {/if}
-
             </button>
             <button class="skip" on:click={() => audioManager.next()}>
                 <SkipEndFill width="20" height="20" color="white" />
             </button>
-            <button class="repeat" on:click={() => {audioManager.player.toggleLoop(); loop = audioManager.player.loop}}>
-                <Repeat width="20" height="20" color="{loop ? "lime" : "white"}" />
+            <button
+                class="repeat"
+                on:click={() => {
+                    audioManager.player.toggleLoop();
+                    loop = audioManager.player.loop;
+                }}
+            >
+                <Repeat
+                    width="20"
+                    height="20"
+                    color={loop ? "lime" : "white"}
+                />
             </button>
         </div>
         <div class="seek-container">
             <p>{getAsTimeString(seekTime * 1000)}</p>
-            <div class="seek" style="--data-percent: {seekTime / seekDuration * 100}%;"></div>
+            <div
+                class="seek"
+                style="--data-percent: {(seekTime / seekDuration) * 100}%;"
+            ></div>
             <p>{getAsTimeString(seekDuration * 1000)}</p>
-
         </div>
     </div>
     <div class="ss misc-controls">
         <button class="mc-btn">
             <VolumeUpFill width="24" height="24" />
         </button>
-        <button class="mc-btn" on:click={() => {toggleQueue(); qOpen=isQueueOpened}}>
-            <Bookshelf width="24" height="24" color="{qOpen ? "lime" : "white"}" />
+        <button
+            class="mc-btn"
+            on:click={() => {
+                toggleQueue();
+                qOpen = isQueueOpened;
+            }}
+        >
+            <Bookshelf
+                width="24"
+                height="24"
+                color={qOpen ? "lime" : "white"}
+            />
         </button>
     </div>
 </div>
 
 <style>
-
     .seek-container p {
         font-size: 14px;
         margin: 8px;
     }
-
 
     .mc-btn {
         width: 32px;
@@ -128,7 +180,8 @@
         justify-content: space-between;
         height: 64px;
     }
-    .title-segment h1, .title-segment p {
+    .title-segment h1,
+    .title-segment p {
         overflow: hidden;
         word-break: normal;
         word-wrap: normal;
@@ -137,7 +190,7 @@
     }
     .seek-area {
         z-index: 100;
-        font-family: 'Figtree';
+        font-family: "Figtree";
         display: flex;
         flex-direction: row;
         width: 100%;
@@ -169,7 +222,7 @@
     }
 
     .seek::before {
-        content: '';
+        content: "";
         position: absolute;
         border-radius: 1.5px;
         width: var(--data-percent);
@@ -179,7 +232,6 @@
         top: 0;
         bottom: 0;
     }
-
 
     .playbar {
         flex: 2;
@@ -231,7 +283,6 @@
     button:hover {
         background: var(--highlight);
     }
-    
 
     .track-right {
         height: 100%;
@@ -248,7 +299,7 @@
         font-weight: 900;
     }
     .sub-txt,
-    .artist-txt {   
+    .artist-txt {
         color: var(--contrast);
     }
     .track-left {
@@ -265,6 +316,4 @@
         justify-content: flex-end;
         align-items: center;
     }
-
-
 </style>

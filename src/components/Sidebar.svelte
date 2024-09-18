@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { playAll } from "./audioManager";
+    import { playAll } from "../utils/audioManager";
 
     export let playlists: Playlist[] = [];
     export let metaArtists: Artist[] = [];
