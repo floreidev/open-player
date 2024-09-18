@@ -11,7 +11,7 @@ A modern, open-source audio player built in tauri
 ## Planned Features
 | Feature               | Priority | Term       | Complete |
 | --------------------- | -------- | ---------- | -------- |
-| Queue Skipping        | High     | Short-Term | ❌        |
+| Queue Skipping        | High     | Short-Term | ✅        |
 | Volume Control        | High     | Short-Term | ❌        |
 | Playlists             | High     | Short-Term | ❌        |
 | Favourites            | High     | Short-Term | ❌        |
@@ -25,3 +25,6 @@ A modern, open-source audio player built in tauri
 
 ## Performance
 Currently, open-player runs around 10-100x more resource-effeicent when compared to spotify.
+
+## Building
+To build for your platform run `npm run tauri build`. An executable file that matches your system will be outputted into `src-tauri/target/release/bundle`
